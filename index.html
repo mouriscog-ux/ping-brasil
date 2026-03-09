@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ping Brasil - Simulador de Tênis de Mesa</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="loader"></div>
+        <p>Carregando Assets do Brasileirão...</p>
+        <div id="pre-load-log"></div>
+    </div>
+
+    <div id="app" style="display: none;">
+        <!-- Menu Principal -->
+        <section id="main-menu" class="screen">
+            <h1 class="glitch-text">PING BRASIL</h1>
+            <p class="subtitle">CAMPEONATO BRASILEIRO</p>
+            <div class="menu-actions">
+                <button onclick="showScreen('team-selection')" class="btn-primary">Novo Torneio</button>
+                <button onclick="showScreen('settings')" class="btn-secondary">Configurações</button>
+            </div>
+        </section>
+
+        <!-- Seleção de Time -->
+        <section id="team-selection" class="screen" style="display: none;">
+            <h2>Escolha seu Time</h2>
+            <div id="teams-grid"></div>
+            <div class="selection-footer">
+                <button onclick="showScreen('main-menu')" class="btn-back">Voltar</button>
+                <div id="difficulty-selector">
+                    <label>Dificuldade:</label>
+                    <select id="difficulty-level">
+                        <option value="normal">Normal</option>
+                        <option value="hard">Hard</option>
+                        <option value="super-hard">Super Hard</option>
+                    </select>
+                </div>
+                <button id="start-btn" disabled class="btn-primary">Iniciar</button>
+            </div>
+        </section>
+
+        <!-- Tela de Jogo -->
+        <section id="game-screen" class="screen" style="display: none;">
+            <div id="hud">
+                <div class="score-board">
+                    <div class="player-score">
+                        <img id="player-shield" src="" alt="">
+                        <span id="player-points">0</span>
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="ai-score">
+                        <span id="ai-points">0</span>
+                        <img id="ai-shield" src="" alt="">
+                    </div>
+                </div>
+                <div id="match-info">Oitavas de Final</div>
+            </div>
+            <canvas id="gameCanvas"></canvas>
+            <div id="controls-hint">Arraste o mouse para mover a raquete</div>
+        </section>
+
+        <!-- Torneio / Resultados -->
+        <section id="tournament-screen" class="screen" style="display: none;">
+            <div id="tournament-bracket"></div>
+            <button id="next-match-btn" class="btn-primary">Próxima Partida</button>
+        </section>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
