@@ -1,6 +1,9 @@
 /**
  * PING BRASIL 2.0 - CAMPEONATO BRASILEIRO
- * Módulo Antigravity Invoked
+ * Mapeamento de Controle 3D:
+ * Setas Esquerda/Direita: Lateral (Cantos da mesa)
+ * Seta Cima: Avançar (Rede)
+ * Seta Baixo: Recuar (Linha de fundo)
  */
 
 const TEAMS = [
@@ -26,27 +29,25 @@ const TEAMS = [
     { id: 'criciuma', name: 'Criciúma', color: '#ffff00', secondary: '#000000' }
 ];
 
-// Estado Global
 const state = {
     screen: 'loading',
     playerTeam: null,
     aiTeam: null,
     difficulty: 'normal',
     score: { player: 0, ai: 0 },
-    round: 0, // 0-3
-    ball: { x: 400, y: 250, vx: 5, vy: 3, radius: 8 },
+    round: 0, 
+    ball: { x: 400, y: 250, vx: 5, vy: 3, radius: 8, speed: 5 },
     player: {
         x: 60, y: 250, 
+        radius: 35, // Anatomica (Borracha)
+        handleWidth: 12, handleHeight: 45,
         targetX: 60, targetY: 250,
-        radius: 30, // Formato anatômico
-        handleHeight: 40, handleWidth: 12,
-        isDragging: false,
-        vx: 0, vy: 0
+        isDragging: false
     },
     ai: {
         x: 740, y: 250, 
-        radius: 30,
-        handleHeight: 40, handleWidth: 12,
+        radius: 35,
+        handleWidth: 12, handleHeight: 45,
         speed: 3
     },
     keys: { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false }
@@ -57,7 +58,6 @@ const ctx = canvas.getContext('2d');
 canvas.width = 800;
 canvas.height = 500;
 
-// Assets
 const assets = { shields: {}, loaded: 0 };
 
 async function initAntigravityProtocol() {
@@ -67,51 +67,33 @@ async function initAntigravityProtocol() {
         log.scrollTop = log.scrollHeight;
     };
 
-    logOut("Iniciando Protocolo Antigravity...");
-    logOut("Validando Ambiente Python (conceptual check ok)");
-    logOut("Mapeando Diretório Raiz /assets...");
-
+    logOut("Ativando Sistema de Estabilidade...");
     for (const team of TEAMS) {
         try {
             const img = new Image();
-            // Fallback: se não achar na pasta local, gera um via API DiceBear
-            img.src = `${team.id}.png`; // Tenta local
-            
+            img.src = `${team.id}.png`; 
             await new Promise((resolve) => {
-                img.onload = () => {
-                    logOut(`Asset ${team.id} verificado.`);
-                    resolve();
-                };
+                img.onload = resolve;
                 img.onerror = () => {
-                    logOut(`<span style="color:yellow">Aviso: ${team.id} não encontrado. Usando brasão genérico.</span>`);
                     img.src = `https://api.dicebear.com/7.x/initials/svg?seed=${team.name}&backgroundColor=${team.color.substring(1)}`;
                     img.onload = resolve;
                 };
             });
             assets.shields[team.id] = img;
             assets.loaded++;
-        } catch (e) {
-            console.error(e);
-        }
+        } catch (e) {}
     }
-
-    logOut("Varredura de Assets concluída com 100% de estabilidade.");
     setTimeout(() => {
-        document.getElementById('loading-screen').style.opacity = '0';
-        setTimeout(() => {
-            document.getElementById('loading-screen').style.display = 'none';
-            document.getElementById('app').style.display = 'flex';
-            showScreen('main-menu');
-        }, 500);
+        document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+        showScreen('main-menu');
     }, 1000);
 }
 
-// --- Logica de Navegação ---
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
     document.getElementById(id).style.display = 'flex';
     state.screen = id;
-    if (id === 'team-selection') renderTeams();
 }
 
 function renderTeams() {
@@ -120,10 +102,7 @@ function renderTeams() {
     TEAMS.forEach(team => {
         const card = document.createElement('div');
         card.className = 'team-card';
-        card.innerHTML = `
-            <img class="team-logo-ui" src="${assets.shields[team.id].src}">
-            <div class="team-name-ui">${team.name}</div>
-        `;
+        card.innerHTML = `<img class="team-logo-ui" src="${assets.shields[team.id].src}"><div class="team-name-ui">${team.name}</div>`;
         card.onclick = () => {
             document.querySelectorAll('.team-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
@@ -143,17 +122,12 @@ document.getElementById('start-btn').onclick = () => {
 function startMatch() {
     state.score = { player: 0, ai: 0 };
     updateHUD();
-    
-    // Sortear oponente
     const pool = TEAMS.filter(t => t.id !== state.playerTeam.id);
     state.aiTeam = pool[Math.floor(Math.random() * pool.length)];
-    
     document.getElementById('player-shield').src = assets.shields[state.playerTeam.id].src;
     document.getElementById('ai-shield').src = assets.shields[state.aiTeam.id].src;
-    
-    const roundNames = ['OITAVAS', 'QUARTAS', 'SEMIFINAL', 'FINAL'];
-    document.getElementById('match-info').innerText = roundNames[state.round] + " - BRASILEIRÃO";
-
+    const rounds = ['OITAVAS', 'QUARTAS', 'SEMIFINAL', 'FINAL'];
+    document.getElementById('match-info').innerText = rounds[state.round] + " DE FINAL";
     showScreen('game-screen');
     resetPositions();
     requestAnimationFrame(gameLoop);
@@ -165,216 +139,173 @@ function updateHUD() {
 }
 
 function resetPositions() {
-    state.ball = { x: 400, y: 250, vx: (Math.random() > 0.5 ? 5 : -5), vy: (Math.random() - 0.5) * 6, radius: 8 };
-    state.player.x = 100;
+    const speeds = { normal: 4, hard: 6, 'super-hard': 9 };
+    state.ball.speed = speeds[state.difficulty];
+    state.ball.x = 400;
+    state.ball.y = 250;
+    state.ball.vx = (Math.random() > 0.5 ? 1 : -1) * state.ball.speed;
+    state.ball.vy = (Math.random() - 0.5) * 6;
+    state.player.x = 80;
     state.player.y = 250;
-    state.ai.x = 700;
-    state.ai.y = 250;
 }
 
-// --- Controles ---
 window.addEventListener('keydown', e => { if (state.keys.hasOwnProperty(e.code)) state.keys[e.code] = true; });
 window.addEventListener('keyup', e => { if (state.keys.hasOwnProperty(e.code)) state.keys[e.code] = false; });
-
-canvas.addEventListener('mousedown', e => { state.player.isDragging = true; });
-window.addEventListener('mouseup', () => { state.player.isDragging = false; });
+canvas.addEventListener('mousedown', () => state.player.isDragging = true);
+window.addEventListener('mouseup', () => state.player.isDragging = false);
 canvas.addEventListener('mousemove', e => {
-    if (!state.player.isDragging) return;
     const rect = canvas.getBoundingClientRect();
     state.player.targetX = e.clientX - rect.left;
     state.player.targetY = e.clientY - rect.top;
 });
 
-// --- Motor do Jogo ---
 function update() {
     if (state.screen !== 'game-screen') return;
-
     const p = state.player;
     const ai = state.ai;
     const b = state.ball;
 
-    // Movimentação Player (Híbrida: Mouse + Teclado)
+    // CONTROLE 3D (Teclado)
     let moveSpeed = 6;
-    if (state.keys.ArrowUp) p.y -= moveSpeed;
-    if (state.keys.ArrowDown) p.y += moveSpeed;
-    if (state.keys.ArrowLeft) p.x -= moveSpeed;
-    if (state.keys.ArrowRight) p.x += moveSpeed;
+    if (state.keys.ArrowUp) p.x += moveSpeed; // Frente (Rede)
+    if (state.keys.ArrowDown) p.x -= moveSpeed; // Tras (Fundo)
+    if (state.keys.ArrowLeft) p.y -= moveSpeed; // Lateral (Cantos)
+    if (state.keys.ArrowRight) p.y += moveSpeed; // Lateral (Cantos)
 
     if (p.isDragging) {
-        // Suavização do arraste
-        p.x += (p.targetX - p.x) * 0.3;
-        p.y += (p.targetY - p.y) * 0.3;
+        p.x += (p.targetX - p.x) * 0.2;
+        p.y += (p.targetY - p.y) * 0.2;
     }
 
-    // Constraints Player (Não passar da rede e limites da mesa)
-    if (p.x < p.radius) p.x = p.radius;
-    if (p.x > 380) p.x = 380; // Não passa da rede
-    if (p.y < p.radius) p.y = p.radius;
-    if (p.y > canvas.height - p.radius) p.y = canvas.height - p.radius;
+    // Limites Mesa Player
+    if (p.x < 40) p.x = 40;
+    if (p.x > 360) p.x = 360; // Nao passa da rede
+    if (p.y < 40) p.y = 40;
+    if (p.y > 460) p.y = 460;
 
-    // IA - De acordo com Dificuldade
-    const aiCenter = ai.y;
-    let aiSpeed = 4;
-    if (state.difficulty === 'hard') aiSpeed = 7;
-    if (state.difficulty === 'super-hard') aiSpeed = 15;
+    // IA - Inteligencia e Dificuldade
+    let aiSpeedY = 3;
+    let aiSpeedX = 2;
+    if (state.difficulty === 'hard') { aiSpeedY = 5; aiSpeedX = 4; }
+    if (state.difficulty === 'super-hard') { aiSpeedY = 12; aiSpeedX = 8; }
 
-    // Movimento X da IA (Depth axis)
-    if (state.difficulty === 'normal') {
-        ai.x += (720 - ai.x) * 0.1; // Fica no fundo
-    } else if (state.difficulty === 'hard') {
-        if (b.vx > 0) ai.x += (500 - ai.x) * 0.05; // Avança um pouco
-        else ai.x += (720 - ai.x) * 0.05;
+    // IA Movimento X (Depth)
+    if (state.difficulty === 'super-hard') {
+        if (b.vx > 0) ai.x += (500 - ai.x) * 0.1; // Avanca para pressionar
+        else ai.x += (720 - ai.x) * 0.1;
     } else {
-        // Super Hard: Tenta ficar onde o jogador não está
-        ai.x += (600 - ai.x) * 0.1;
+        ai.x += (740 - ai.x) * 0.1; // Fica mais no fundo
     }
 
-    // Movimento Y da IA
-    if (b.vx > 0 || state.difficulty !== 'normal') {
-        if (ai.y < b.y - 10) ai.y += aiSpeed;
-        else if (ai.y > b.y + 10) ai.y -= aiSpeed;
+    // IA Movimento Y (Track ball)
+    if (b.vx > 0) {
+        if (ai.y < b.y - 10) ai.y += aiSpeedY;
+        else if (ai.y > b.y + 10) ai.y -= aiSpeedY;
     }
 
-    // Constraints AI
-    if (ai.x < 420) ai.x = 420;
-    if (ai.x > canvas.width - ai.radius) ai.x = canvas.width - ai.radius;
-    if (ai.y < ai.radius) ai.y = ai.radius;
-    if (ai.y > canvas.height - ai.radius) ai.y = canvas.height - ai.radius;
+    // Limites IA
+    if (ai.x < 440) ai.x = 440;
+    if (ai.x > 760) ai.x = 760;
+    if (ai.y < 40) ai.y = 40;
+    if (ai.y > 460) ai.y = 460;
 
-    // Física da Bola
+    // Fisica Bola
     b.x += b.vx;
     b.y += b.vy;
+    if (b.y < b.radius || b.y > canvas.height - b.radius) b.vy *= -1;
 
-    if (b.y < b.radius || b.y > canvas.height - b.radius) b.vy *= -1.05;
+    // Colisao Anatomica
+    checkCollision(b, p, true);
+    checkCollision(b, ai, false);
 
-    // Colisão Anatômica (Círculo) - Player
-    checkAnatomicalCollision(b, p, true);
-    // Colisão Anatômica (Círculo) - AI
-    checkAnatomicalCollision(b, ai, false);
-
-    // Scoring (6 pontos)
-    if (b.x < 0) {
-        state.score.ai++;
-        updateHUD();
-        if (state.score.ai >= 6) endMatch('ai');
-        else resetPositions();
-    } else if (b.x > canvas.width) {
-        state.score.player++;
-        updateHUD();
-        if (state.score.player >= 6) endMatch('player');
-        else resetPositions();
-    }
+    // Score a 6 Pontos
+    if (b.x < 0) { state.score.ai++; finishPoint(); }
+    else if (b.x > canvas.width) { state.score.player++; finishPoint(); }
 }
 
-function checkAnatomicalCollision(ball, paddle, isPlayer) {
+function finishPoint() {
+    updateHUD();
+    if (state.score.player >= 6) {
+        state.round++;
+        if (state.round > 3) { alert("CAMPEAO! TAÇA DO BRASILEIRÃO É SUA!"); showScreen('main-menu'); }
+        else { alert("Vitoria! Proxima Fase."); startMatch(); }
+    } else if (state.score.ai >= 6) {
+        alert("Eliminado! Tente novamente."); showScreen('main-menu');
+    } else { resetPositions(); }
+}
+
+function checkCollision(ball, paddle, isPlayer) {
     const dx = ball.x - paddle.x;
     const dy = ball.y - paddle.y;
-    const distance = Math.sqrt(dx*dx + dy*dy);
-
-    if (distance < ball.radius + paddle.radius) {
-        // Rebatida baseada no ponto de impacto (Centro da raquete = Precision)
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < ball.radius + paddle.radius) {
         const angle = Math.atan2(dy, dx);
-        const speed = Math.sqrt(ball.vx*ball.vx + ball.vy*ball.vy);
-        
-        // Inverte sentido X
-        ball.vx = (isPlayer ? 1 : -1) * Math.abs(speed);
-        ball.vy = Math.sin(angle) * (speed + 2);
-        
-        // Aumenta velocidade se for rebati no meio
-        const precision = 1 - (distance / (ball.radius + paddle.radius));
-        ball.vx *= (1 + precision * 0.2);
-
-        // Escape
+        ball.vx = (isPlayer ? 1 : -1) * Math.abs(state.ball.speed + 2);
+        ball.vy = Math.sin(angle) * (state.ball.speed + 1);
         ball.x = paddle.x + Math.cos(angle) * (paddle.radius + ball.radius + 2);
     }
 }
 
-function endMatch(winner) {
-    if (winner === 'player') {
-        state.round++;
-        if (state.round > 3) {
-            alert("CAMPEÃO BRASILEIRO! 🏆");
-            showScreen('main-menu');
-        } else {
-            alert("Vitória! Avançando no campeonato.");
-            startMatch();
-        }
-    } else {
-        alert("Eliminado do Brasileirão.");
-        showScreen('main-menu');
-    }
-}
-
 function draw() {
-    ctx.fillStyle = '#07080c';
+    ctx.fillStyle = '#0a1a10';
     ctx.fillRect(0,0, canvas.width, canvas.height);
 
-    // Marca d'água (Escudo Central)
+    // Marca d'Agua - Símbolo no Gramado (Centro)
     if (state.playerTeam) {
         ctx.save();
-        ctx.globalAlpha = 0.08;
-        const size = 300;
-        ctx.drawImage(assets.shields[state.playerTeam.id], 400 - size/2, 250 - size/2, size, size);
+        ctx.globalAlpha = 0.1;
+        const s = 250;
+        ctx.drawImage(assets.shields[state.playerTeam.id], 400 - s/2, 250 - s/2, s, s);
         ctx.restore();
     }
 
-    // Desenha Mesa com Cores Dinâmicas
-    const teamColor = state.playerTeam ? state.playerTeam.color : '#00ff88';
+    // Mesa e Rede
+    const color = state.playerTeam ? state.playerTeam.color : '#00ff88';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(10, 10, 780, 480);
     
-    // Borda da mesa
-    ctx.strokeStyle = teamColor;
-    ctx.lineWidth = 10;
-    ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
-
-    // Rede
     ctx.beginPath();
-    ctx.setLineDash([5, 5]);
-    ctx.moveTo(400, 0);
-    ctx.lineTo(400, 500);
-    ctx.strokeStyle = teamColor;
-    ctx.globalAlpha = 0.5;
+    ctx.setLineDash([10, 10]);
+    ctx.moveTo(400, 10); ctx.lineTo(400, 490);
+    ctx.strokeStyle = color;
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.globalAlpha = 1.0;
 
-    // Player Paddle (Anatômica)
-    drawPaddle(state.player, state.playerTeam ? state.playerTeam.color : '#fff', true);
-    
-    // AI Paddle (Anatômica)
-    drawPaddle(state.ai, state.aiTeam ? state.aiTeam.color : '#fff', false);
+    // Desenha Raquetes Anatomicas
+    drawAnatomicalPaddle(state.player, color, true);
+    drawAnatomicalPaddle(state.ai, state.aiTeam ? state.aiTeam.color : '#fff', false);
 
     // Bola
     ctx.beginPath();
     ctx.fillStyle = '#fff';
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = '#fff';
     ctx.arc(state.ball.x, state.ball.y, state.ball.radius, 0, Math.PI*2);
     ctx.fill();
-    ctx.shadowBlur = 0;
 }
 
-function drawPaddle(p, color, isPlayer) {
+function drawAnatomicalPaddle(p, color, isPlayer) {
     ctx.save();
     ctx.translate(p.x, p.y);
-    if (!isPlayer) ctx.rotate(Math.PI); // Gira cabo para fora
+    if (!isPlayer) ctx.rotate(Math.PI);
 
     // Cabo
-    ctx.fillStyle = '#4a2c1d';
-    ctx.fillRect(-p.handleWidth/2, 0, p.handleWidth, p.handleHeight + 10);
+    ctx.fillStyle = '#5c3c2e';
+    ctx.fillRect(-p.handleWidth/2, 5, p.handleWidth, p.handleHeight);
 
-    // Cabeça da Raquete (Borracha)
+    // Borracha Circular
     ctx.beginPath();
     ctx.fillStyle = color;
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = 10;
     ctx.shadowColor = color;
     ctx.arc(0, 0, p.radius, 0, Math.PI*2);
     ctx.fill();
+    ctx.shadowBlur = 0;
     
-    // Detalhe de borracha interna
+    // Detalhe Aro
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-    ctx.lineWidth = 4;
-    ctx.arc(0, 0, p.radius - 5, 0, Math.PI*2);
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.arc(0, 0, p.radius, 0, Math.PI*2);
     ctx.stroke();
 
     ctx.restore();
@@ -388,5 +319,4 @@ function gameLoop() {
     }
 }
 
-// Start sequence
 initAntigravityProtocol();
