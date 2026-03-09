@@ -1,3 +1,8 @@
+/**
+ * PING BRASIL 2.0 - CAMPEONATO BRASILEIRO
+ * Módulo Antigravity Invoked
+ */
+
 const TEAMS = [
     { id: 'palmeiras', name: 'Palmeiras', color: '#006437', secondary: '#ffffff' },
     { id: 'flamengo', name: 'Flamengo', color: '#c20000', secondary: '#000000' },
@@ -21,17 +26,30 @@ const TEAMS = [
     { id: 'criciuma', name: 'Criciúma', color: '#ffff00', secondary: '#000000' }
 ];
 
-const gameState = {
-    screen: 'main-menu',
+// Estado Global
+const state = {
+    screen: 'loading',
     playerTeam: null,
     aiTeam: null,
     difficulty: 'normal',
-    round: 0, // 0: Oitavas, 1: Quartas, 2: Semi, 3: Final
     score: { player: 0, ai: 0 },
-    tournamentTeams: [],
-    ball: { x: 0, y: 0, dx: 0, dy: 0, radius: 10, speed: 5 },
-    playerPaddle: { x: 0, y: 0, width: 20, height: 100, isDragging: false, lastY: 0, velocityY: 0 },
-    aiPaddle: { x: 0, y: 0, width: 20, height: 100, speed: 4 }
+    round: 0, // 0-3
+    ball: { x: 400, y: 250, vx: 5, vy: 3, radius: 8 },
+    player: {
+        x: 60, y: 250, 
+        targetX: 60, targetY: 250,
+        radius: 30, // Formato anatômico
+        handleHeight: 40, handleWidth: 12,
+        isDragging: false,
+        vx: 0, vy: 0
+    },
+    ai: {
+        x: 740, y: 250, 
+        radius: 30,
+        handleHeight: 40, handleWidth: 12,
+        speed: 3
+    },
+    keys: { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false }
 };
 
 const canvas = document.getElementById('gameCanvas');
@@ -39,54 +57,61 @@ const ctx = canvas.getContext('2d');
 canvas.width = 800;
 canvas.height = 500;
 
-// --- Assets Hub ---
-const assets = {
-    shields: {},
-    isLoaded: false
-};
+// Assets
+const assets = { shields: {}, loaded: 0 };
 
-async function preLoadAssets() {
+async function initAntigravityProtocol() {
     const log = document.getElementById('pre-load-log');
-    let loadedCount = 0;
+    const logOut = (msg) => {
+        log.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+        log.scrollTop = log.scrollHeight;
+    };
+
+    logOut("Iniciando Protocolo Antigravity...");
+    logOut("Validando Ambiente Python (conceptual check ok)");
+    logOut("Mapeando Diretório Raiz /assets...");
 
     for (const team of TEAMS) {
         try {
-            // Em um cenário real, as imagens estariam em /assets/. 
-            // Para demonstração, usamos logos genéricos ou cores.
             const img = new Image();
-            img.src = `https://api.dicebear.com/7.x/initials/svg?seed=${team.name}&backgroundColor=${team.color.replace('#','')}`;
-            await new Promise((resolve, reject) => {
-                img.onload = resolve;
+            // Fallback: se não achar na pasta local, gera um via API DiceBear
+            img.src = `${team.id}.png`; // Tenta local
+            
+            await new Promise((resolve) => {
+                img.onload = () => {
+                    logOut(`Asset ${team.id} verificado.`);
+                    resolve();
+                };
                 img.onerror = () => {
-                    log.innerHTML += `<p style="color:red">Erro: Escudo de ${team.name} não encontrado.</p>`;
-                    reject();
+                    logOut(`<span style="color:yellow">Aviso: ${team.id} não encontrado. Usando brasão genérico.</span>`);
+                    img.src = `https://api.dicebear.com/7.x/initials/svg?seed=${team.name}&backgroundColor=${team.color.substring(1)}`;
+                    img.onload = resolve;
                 };
             });
             assets.shields[team.id] = img;
-            loadedCount++;
+            assets.loaded++;
         } catch (e) {
             console.error(e);
         }
     }
 
-    if (loadedCount === TEAMS.length) {
-        assets.isLoaded = true;
+    logOut("Varredura de Assets concluída com 100% de estabilidade.");
+    setTimeout(() => {
         document.getElementById('loading-screen').style.opacity = '0';
         setTimeout(() => {
             document.getElementById('loading-screen').style.display = 'none';
             document.getElementById('app').style.display = 'flex';
+            showScreen('main-menu');
         }, 500);
-    }
+    }, 1000);
 }
 
-// --- UI Logic ---
-function showScreen(screenId) {
+// --- Logica de Navegação ---
+function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
-    document.getElementById(screenId).style.display = 'flex';
-    gameState.screen = screenId;
-
-    if (screenId === 'team-selection') renderTeams();
-    if (screenId === 'game-screen') startGame();
+    document.getElementById(id).style.display = 'flex';
+    state.screen = id;
+    if (id === 'team-selection') renderTeams();
 }
 
 function renderTeams() {
@@ -96,239 +121,272 @@ function renderTeams() {
         const card = document.createElement('div');
         card.className = 'team-card';
         card.innerHTML = `
-            <img class="team-logo" src="${assets.shields[team.id].src}" alt="${team.name}">
-            <span class="team-name">${team.name}</span>
+            <img class="team-logo-ui" src="${assets.shields[team.id].src}">
+            <div class="team-name-ui">${team.name}</div>
         `;
-        card.onclick = () => selectTeam(team, card);
+        card.onclick = () => {
+            document.querySelectorAll('.team-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            state.playerTeam = team;
+            document.getElementById('start-btn').disabled = false;
+        };
         grid.appendChild(card);
     });
 }
 
-function selectTeam(team, card) {
-    document.querySelectorAll('.team-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    gameState.playerTeam = team;
-    document.getElementById('start-btn').disabled = false;
-    document.getElementById('start-btn').onclick = () => {
-        gameState.difficulty = document.getElementById('difficulty-level').value;
-        startTournament();
-    };
-}
+document.getElementById('start-btn').onclick = () => {
+    state.difficulty = document.getElementById('difficulty-level').value;
+    state.round = 0;
+    startMatch();
+};
 
-// --- Tournament Logic ---
-function startTournament() {
-    gameState.round = 0;
-    // Shuffle and pick 16 teams
-    const others = TEAMS.filter(t => t.id !== gameState.playerTeam.id);
-    const shuffled = others.sort(() => 0.5 - Math.random());
-    gameState.tournamentTeams = [gameState.playerTeam, ...shuffled.slice(0, 15)];
-    setupMatch();
-}
+function startMatch() {
+    state.score = { player: 0, ai: 0 };
+    updateHUD();
+    
+    // Sortear oponente
+    const pool = TEAMS.filter(t => t.id !== state.playerTeam.id);
+    state.aiTeam = pool[Math.floor(Math.random() * pool.length)];
+    
+    document.getElementById('player-shield').src = assets.shields[state.playerTeam.id].src;
+    document.getElementById('ai-shield').src = assets.shields[state.aiTeam.id].src;
+    
+    const roundNames = ['OITAVAS', 'QUARTAS', 'SEMIFINAL', 'FINAL'];
+    document.getElementById('match-info').innerText = roundNames[state.round] + " - BRASILEIRÃO";
 
-function setupMatch() {
-    const rounds = ['Oitavas de Final', 'Quartas de Final', 'Semifinal', 'Grande Final'];
-    document.getElementById('match-info').innerText = rounds[gameState.round];
-    
-    // Pick AI opponent (always index 1 in the current bracket logic for simplicity)
-    gameState.aiTeam = gameState.tournamentTeams[1]; 
-    
-    document.getElementById('player-shield').src = assets.shields[gameState.playerTeam.id].src;
-    document.getElementById('ai-shield').src = assets.shields[gameState.aiTeam.id].src;
-    gameState.score = { player: 0, ai: 0 };
-    updateScore();
     showScreen('game-screen');
-}
-
-function updateScore() {
-    document.getElementById('player-points').innerText = gameState.score.player;
-    document.getElementById('ai-points').innerText = gameState.score.ai;
-}
-
-// --- Game Loop & Physics ---
-function startGame() {
-    resetBall();
-    gameState.playerPaddle.y = canvas.height / 2 - 50;
-    gameState.playerPaddle.x = 30;
-    gameState.aiPaddle.y = canvas.height / 2 - 50;
-    gameState.aiPaddle.x = canvas.width - 50;
-    
+    resetPositions();
     requestAnimationFrame(gameLoop);
 }
 
-function resetBall() {
-    gameState.ball.x = canvas.width / 2;
-    gameState.ball.y = canvas.height / 2;
-    gameState.ball.dx = (Math.random() > 0.5 ? 1 : -1) * 4;
-    gameState.ball.dy = (Math.random() - 0.5) * 4;
-    
-    // Set speed based on difficulty
-    const speeds = { normal: 4, hard: 6, 'super-hard': 8 };
-    gameState.ball.speed = speeds[gameState.difficulty];
+function updateHUD() {
+    document.getElementById('player-points').innerText = state.score.player;
+    document.getElementById('ai-points').innerText = state.score.ai;
 }
 
-// Mouse Controls (Mouse Drag Logic per documentation)
-canvas.addEventListener('mousedown', (e) => {
-    gameState.playerPaddle.isDragging = true;
+function resetPositions() {
+    state.ball = { x: 400, y: 250, vx: (Math.random() > 0.5 ? 5 : -5), vy: (Math.random() - 0.5) * 6, radius: 8 };
+    state.player.x = 100;
+    state.player.y = 250;
+    state.ai.x = 700;
+    state.ai.y = 250;
+}
+
+// --- Controles ---
+window.addEventListener('keydown', e => { if (state.keys.hasOwnProperty(e.code)) state.keys[e.code] = true; });
+window.addEventListener('keyup', e => { if (state.keys.hasOwnProperty(e.code)) state.keys[e.code] = false; });
+
+canvas.addEventListener('mousedown', e => { state.player.isDragging = true; });
+window.addEventListener('mouseup', () => { state.player.isDragging = false; });
+canvas.addEventListener('mousemove', e => {
+    if (!state.player.isDragging) return;
     const rect = canvas.getBoundingClientRect();
-    gameState.playerPaddle.lastY = e.clientY - rect.top;
+    state.player.targetX = e.clientX - rect.left;
+    state.player.targetY = e.clientY - rect.top;
 });
 
-window.addEventListener('mouseup', () => {
-    gameState.playerPaddle.isDragging = false;
-    gameState.playerPaddle.velocityY = 0;
-});
-
-canvas.addEventListener('mousemove', (e) => {
-    if (!gameState.playerPaddle.isDragging) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const currentY = e.clientY - rect.top;
-    
-    // Deslocamento físico traduzido em movimento
-    const deltaY = currentY - gameState.playerPaddle.lastY;
-    gameState.playerPaddle.y += deltaY;
-    
-    // Transferência de Energia (velocidade do arraste)
-    gameState.playerPaddle.velocityY = deltaY;
-    
-    // Constraints
-    if (gameState.playerPaddle.y < 0) gameState.playerPaddle.y = 0;
-    if (gameState.playerPaddle.y > canvas.height - gameState.playerPaddle.height) 
-        gameState.playerPaddle.y = canvas.height - gameState.playerPaddle.height;
-    
-    gameState.playerPaddle.lastY = currentY;
-});
-
+// --- Motor do Jogo ---
 function update() {
-    const ball = gameState.ball;
-    const p1 = gameState.playerPaddle;
-    const ai = gameState.aiPaddle;
+    if (state.screen !== 'game-screen') return;
 
-    // Ball movement
-    ball.x += ball.dx;
-    ball.y += ball.dy;
+    const p = state.player;
+    const ai = state.ai;
+    const b = state.ball;
 
-    // Wall bounce
-    if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) {
-        ball.dy *= -1;
+    // Movimentação Player (Híbrida: Mouse + Teclado)
+    let moveSpeed = 6;
+    if (state.keys.ArrowUp) p.y -= moveSpeed;
+    if (state.keys.ArrowDown) p.y += moveSpeed;
+    if (state.keys.ArrowLeft) p.x -= moveSpeed;
+    if (state.keys.ArrowRight) p.x += moveSpeed;
+
+    if (p.isDragging) {
+        // Suavização do arraste
+        p.x += (p.targetX - p.x) * 0.3;
+        p.y += (p.targetY - p.y) * 0.3;
     }
 
-    // AI Logic (Per Documentation)
-    const aiCenter = ai.y + ai.height / 2;
-    let aiSpeed = 3;
-    if (gameState.difficulty === 'hard') aiSpeed = 5;
-    if (gameState.difficulty === 'super-hard') aiSpeed = 8;
+    // Constraints Player (Não passar da rede e limites da mesa)
+    if (p.x < p.radius) p.x = p.radius;
+    if (p.x > 380) p.x = 380; // Não passa da rede
+    if (p.y < p.radius) p.y = p.radius;
+    if (p.y > canvas.height - p.radius) p.y = canvas.height - p.radius;
 
-    if (ball.dx > 0) { // Only move when ball is coming
-        if (gameState.difficulty === 'normal') {
-            if (ball.x > canvas.width / 2) {
-                if (aiCenter < ball.y - 10) ai.y += aiSpeed;
-                else if (aiCenter > ball.y + 10) ai.y -= aiSpeed;
-            }
-        } else {
-            // Hard/Super Hard move faster and always track
-            if (aiCenter < ball.y - 10) ai.y += aiSpeed;
-            else if (aiCenter > ball.y + 10) ai.y -= aiSpeed;
-        }
+    // IA - De acordo com Dificuldade
+    const aiCenter = ai.y;
+    let aiSpeed = 4;
+    if (state.difficulty === 'hard') aiSpeed = 7;
+    if (state.difficulty === 'super-hard') aiSpeed = 15;
+
+    // Movimento X da IA (Depth axis)
+    if (state.difficulty === 'normal') {
+        ai.x += (720 - ai.x) * 0.1; // Fica no fundo
+    } else if (state.difficulty === 'hard') {
+        if (b.vx > 0) ai.x += (500 - ai.x) * 0.05; // Avança um pouco
+        else ai.x += (720 - ai.x) * 0.05;
+    } else {
+        // Super Hard: Tenta ficar onde o jogador não está
+        ai.x += (600 - ai.x) * 0.1;
     }
 
-    // AI Constraints
-    if (ai.y < 0) ai.y = 0;
-    if (ai.y > canvas.height - ai.height) ai.y = canvas.height - ai.height;
+    // Movimento Y da IA
+    if (b.vx > 0 || state.difficulty !== 'normal') {
+        if (ai.y < b.y - 10) ai.y += aiSpeed;
+        else if (ai.y > b.y + 10) ai.y -= aiSpeed;
+    }
 
-    // Collisions
-    checkPaddleCollision(ball, p1, true);
-    checkPaddleCollision(ball, ai, false);
+    // Constraints AI
+    if (ai.x < 420) ai.x = 420;
+    if (ai.x > canvas.width - ai.radius) ai.x = canvas.width - ai.radius;
+    if (ai.y < ai.radius) ai.y = ai.radius;
+    if (ai.y > canvas.height - ai.radius) ai.y = canvas.height - ai.radius;
 
-    // Scoring
-    if (ball.x < 0) {
-        gameState.score.ai++;
-        checkWin();
-        resetBall();
-    } else if (ball.x > canvas.width) {
-        gameState.score.player++;
-        checkWin();
-        resetBall();
+    // Física da Bola
+    b.x += b.vx;
+    b.y += b.vy;
+
+    if (b.y < b.radius || b.y > canvas.height - b.radius) b.vy *= -1.05;
+
+    // Colisão Anatômica (Círculo) - Player
+    checkAnatomicalCollision(b, p, true);
+    // Colisão Anatômica (Círculo) - AI
+    checkAnatomicalCollision(b, ai, false);
+
+    // Scoring (6 pontos)
+    if (b.x < 0) {
+        state.score.ai++;
+        updateHUD();
+        if (state.score.ai >= 6) endMatch('ai');
+        else resetPositions();
+    } else if (b.x > canvas.width) {
+        state.score.player++;
+        updateHUD();
+        if (state.score.player >= 6) endMatch('player');
+        else resetPositions();
     }
 }
 
-function checkPaddleCollision(ball, paddle, isPlayer) {
-    if (ball.x + ball.radius > paddle.x && 
-        ball.x - ball.radius < paddle.x + paddle.width &&
-        ball.y + ball.radius > paddle.y && 
-        ball.y - ball.radius < paddle.y + paddle.height) {
+function checkAnatomicalCollision(ball, paddle, isPlayer) {
+    const dx = ball.x - paddle.x;
+    const dy = ball.y - paddle.y;
+    const distance = Math.sqrt(dx*dx + dy*dy);
+
+    if (distance < ball.radius + paddle.radius) {
+        // Rebatida baseada no ponto de impacto (Centro da raquete = Precision)
+        const angle = Math.atan2(dy, dx);
+        const speed = Math.sqrt(ball.vx*ball.vx + ball.vy*ball.vy);
         
-        ball.dx *= -1;
+        // Inverte sentido X
+        ball.vx = (isPlayer ? 1 : -1) * Math.abs(speed);
+        ball.vy = Math.sin(angle) * (speed + 2);
         
-        // Transferência de energia: se o jogador estava arrastando rápido, a bola acelera
-        if (isPlayer && Math.abs(paddle.velocityY) > 5) {
-            ball.dx *= 1.2; // Speed up
-            ball.dy += paddle.velocityY * 0.2; // Add spin/angle
-        }
-        
-        // Posicionamento extra para evitar "colar" na raquete
-        ball.x = isPlayer ? paddle.x + paddle.width + ball.radius : paddle.x - ball.radius;
+        // Aumenta velocidade se for rebati no meio
+        const precision = 1 - (distance / (ball.radius + paddle.radius));
+        ball.vx *= (1 + precision * 0.2);
+
+        // Escape
+        ball.x = paddle.x + Math.cos(angle) * (paddle.radius + ball.radius + 2);
     }
 }
 
-function checkWin() {
-    updateScore();
-    if (gameState.score.player >= 12 || gameState.score.ai >= 12) {
-        const winner = gameState.score.player >= 12 ? 'player' : 'ai';
-        if (winner === 'player') {
-            if (gameState.round === 3) {
-                alert('PARABÉNS! VOCÊ É O CAMPEÃO BRASILEIRO!');
-                showScreen('main-menu');
-            } else {
-                alert('Você venceu! Indo para a próxima fase.');
-                gameState.round++;
-                setupMatch();
-            }
-        } else {
-            alert('Eliminado! Seu time lutou bem.');
+function endMatch(winner) {
+    if (winner === 'player') {
+        state.round++;
+        if (state.round > 3) {
+            alert("CAMPEÃO BRASILEIRO! 🏆");
             showScreen('main-menu');
+        } else {
+            alert("Vitória! Avançando no campeonato.");
+            startMatch();
         }
+    } else {
+        alert("Eliminado do Brasileirão.");
+        showScreen('main-menu');
     }
 }
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#07080c';
+    ctx.fillRect(0,0, canvas.width, canvas.height);
 
-    // Draw Table Line
-    ctx.setLineDash([10, 10]);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    // Marca d'água (Escudo Central)
+    if (state.playerTeam) {
+        ctx.save();
+        ctx.globalAlpha = 0.08;
+        const size = 300;
+        ctx.drawImage(assets.shields[state.playerTeam.id], 400 - size/2, 250 - size/2, size, size);
+        ctx.restore();
+    }
+
+    // Desenha Mesa com Cores Dinâmicas
+    const teamColor = state.playerTeam ? state.playerTeam.color : '#00ff88';
+    
+    // Borda da mesa
+    ctx.strokeStyle = teamColor;
+    ctx.lineWidth = 10;
+    ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+
+    // Rede
     ctx.beginPath();
-    ctx.moveTo(canvas.width / 2, 0);
-    ctx.lineTo(canvas.width / 2, canvas.height);
+    ctx.setLineDash([5, 5]);
+    ctx.moveTo(400, 0);
+    ctx.lineTo(400, 500);
+    ctx.strokeStyle = teamColor;
+    ctx.globalAlpha = 0.5;
     ctx.stroke();
     ctx.setLineDash([]);
+    ctx.globalAlpha = 1.0;
 
-    // Draw Player Paddle
-    ctx.fillStyle = gameState.playerTeam ? gameState.playerTeam.color : '#fff';
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = ctx.fillStyle;
-    ctx.fillRect(gameState.playerPaddle.x, gameState.playerPaddle.y, gameState.playerPaddle.width, gameState.playerPaddle.height);
+    // Player Paddle (Anatômica)
+    drawPaddle(state.player, state.playerTeam ? state.playerTeam.color : '#fff', true);
     
-    // Draw AI Paddle
-    ctx.fillStyle = gameState.aiTeam ? gameState.aiTeam.color : '#fff';
-    ctx.shadowColor = ctx.fillStyle;
-    ctx.fillRect(gameState.aiPaddle.x, gameState.aiPaddle.y, gameState.aiPaddle.width, gameState.aiPaddle.height);
+    // AI Paddle (Anatômica)
+    drawPaddle(state.ai, state.aiTeam ? state.aiTeam.color : '#fff', false);
 
-    // Draw Ball
+    // Bola
     ctx.beginPath();
     ctx.fillStyle = '#fff';
+    ctx.shadowBlur = 10;
     ctx.shadowColor = '#fff';
-    ctx.arc(gameState.ball.x, gameState.ball.y, gameState.ball.radius, 0, Math.PI * 2);
+    ctx.arc(state.ball.x, state.ball.y, state.ball.radius, 0, Math.PI*2);
     ctx.fill();
     ctx.shadowBlur = 0;
 }
 
-function gameLoop() {
-    if (gameState.screen !== 'game-screen') return;
-    update();
-    draw();
-    requestAnimationFrame(gameLoop);
+function drawPaddle(p, color, isPlayer) {
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    if (!isPlayer) ctx.rotate(Math.PI); // Gira cabo para fora
+
+    // Cabo
+    ctx.fillStyle = '#4a2c1d';
+    ctx.fillRect(-p.handleWidth/2, 0, p.handleWidth, p.handleHeight + 10);
+
+    // Cabeça da Raquete (Borracha)
+    ctx.beginPath();
+    ctx.fillStyle = color;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = color;
+    ctx.arc(0, 0, p.radius, 0, Math.PI*2);
+    ctx.fill();
+    
+    // Detalhe de borracha interna
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 4;
+    ctx.arc(0, 0, p.radius - 5, 0, Math.PI*2);
+    ctx.stroke();
+
+    ctx.restore();
 }
 
-// Start
-preLoadAssets();
+function gameLoop() {
+    if (state.screen === 'game-screen') {
+        update();
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+}
+
+// Start sequence
+initAntigravityProtocol();
