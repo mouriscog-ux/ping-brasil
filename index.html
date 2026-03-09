@@ -3,62 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brasileirão Ping Pong Ultimate</title>
+    <title>Brasileirão Ping Pong XP</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="app">
-        <!-- O Menu Principal agora é a primeira tela visível para evitar travamentos -->
+        <!-- Entrada Direta: Sem telas de carregamento bloqueantes -->
         <section id="main-menu" class="screen">
-            <h1 class="ultimate-title">ULTIMATE BR</h1>
-            <p class="ultimate-sub">CHAMPIONSHIP EDITION</p>
-            <button onclick="showScreen('team-selection')" class="btn-ultimate">Iniciar Desafio</button>
+            <h1 class="xp-title">XP CHAMPIONSHIP</h1>
+            <p class="xp-sub">BRASILEIRÃO EDITION</p>
+            <button onclick="showScreen('team-selection')" class="btn-xp">Entrar na Arena</button>
         </section>
 
         <!-- Seleção de Time -->
         <section id="team-selection" class="screen" style="display: none;">
-            <h2 class="section-title">SELECIONE SEU CLUBE</h2>
+            <h2 class="xp-section-title">ESCOLHA SEU CLUBE</h2>
             <div id="teams-grid"></div>
-            <div class="selection-controls">
-                <div class="difficulty-box">
-                    <span>NÍVEL DA IA</span>
+            <div class="xp-controls-bar">
+                <div class="xp-diff">
+                    <label>RIVAL:</label>
                     <select id="difficulty-level">
-                        <option value="normal">AMADOR</option>
-                        <option value="hard">PROFISSIONAL</option>
+                        <option value="normal">NORMAL</option>
+                        <option value="hard">DIFÍCIL</option>
                         <option value="super-hard">LENDÁRIO</option>
                     </select>
                 </div>
-                <button id="start-btn" disabled class="btn-ultimate">Jogar Agora</button>
+                <button id="start-btn" disabled class="btn-xp">Iniciar Match</button>
             </div>
         </section>
 
-        <!-- Arena de Jogo (Totalmente Centralizada) -->
+        <!-- Jogo Centralizado -->
         <section id="game-screen" class="screen" style="display: none;">
             <div id="hud">
-                <div class="score-board">
-                    <div class="team-block">
-                        <img id="player-shield" src="" alt="">
+                <div class="xp-score">
+                    <div class="xp-team">
+                        <img id="player-shield" src="">
                         <span id="player-points">0</span>
                     </div>
-                    <div class="vs-divider">VS</div>
-                    <div class="team-block">
+                    <div class="xp-vs">VS</div>
+                    <div class="xp-team">
                         <span id="ai-points">0</span>
-                        <img id="ai-shield" src="" alt="">
+                        <img id="ai-shield" src="">
                     </div>
                 </div>
-                <div id="match-phase">OITAVAS DE FINAL</div>
+                <div id="match-label">OITAVAS DE FINAL</div>
             </div>
 
-            <div id="viewport">
+            <div id="game-viewport">
                 <canvas id="gameCanvas"></canvas>
             </div>
 
-            <div class="controls-legend">⬅️➡️ LATERAIS | ⬆️ AVANÇAR | ⬇️ RECUAR</div>
+            <div class="xp-hint">⬅️ ➡️ LATERAIS | ⬆️ AVANÇAR | ⬇️ RECUAR | 6 PONTOS VENCE</div>
         </section>
     </div>
 
-    <!-- Script carregado de forma assíncrona para não travar a UI -->
-    <script src="game.js" async></script>
+    <!-- Script carregado para não travar a renderização inicial -->
+    <script src="game.js"></script>
 </body>
 </html>
