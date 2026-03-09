@@ -3,71 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brasileirão Ping Pong Elite – Final Version</title>
+    <title>Brasileirão Ping Pong Ultimate</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="app">
-        <!-- Loader e Anti-Crash -->
-        <section id="loading-screen" class="screen">
-            <div class="loader"></div>
-            <h2 style="margin-top:2rem; font-weight: 900; color: var(--primary);">PING PONG ELITE</h2>
-            <p id="init-status" style="opacity: 0.6;">Sincronizando Resolução e Assets...</p>
-            <div id="pre-load-log" style="display:none"></div>
+        <!-- O Menu Principal agora é a primeira tela visível para evitar travamentos -->
+        <section id="main-menu" class="screen">
+            <h1 class="ultimate-title">ULTIMATE BR</h1>
+            <p class="ultimate-sub">CHAMPIONSHIP EDITION</p>
+            <button onclick="showScreen('team-selection')" class="btn-ultimate">Iniciar Desafio</button>
         </section>
 
-        <!-- Menu Principal Centralizado -->
-        <section id="main-menu" class="screen" style="display: none;">
-            <h1 style="font-size: 6rem; font-weight: 900; background: linear-gradient(to right, #00ff88, #00bcd4); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">ELITE BR</h1>
-            <p style="letter-spacing: 15px; margin-bottom: 4rem; font-weight: 700;">PRO CHAMPIONSHIP</p>
-            <button onclick="showScreen('team-selection')" class="btn-primary">Acessar Arena</button>
-        </section>
-
-        <!-- Seleção Elite -->
+        <!-- Seleção de Time -->
         <section id="team-selection" class="screen" style="display: none;">
-            <h2 style="margin-bottom: 2rem; font-weight: 900; font-size: 2rem;">SELECIONE SEU CLUBE</h2>
+            <h2 class="section-title">SELECIONE SEU CLUBE</h2>
             <div id="teams-grid"></div>
-            <div style="display: flex; align-items: center; gap: 3rem;">
-                <div class="setting">
-                    <label style="display: block; font-size: 0.7rem; color: var(--secondary); font-weight: 900; margin-bottom: 5px;">MODO DE JOGO</label>
-                    <select id="difficulty-level" style="background: transparent; color: white; border: none; font-size: 1.2rem; font-weight: 900; outline: none;">
-                        <option value="normal" style="background: #000">AMADOR (Normal)</option>
-                        <option value="hard" style="background: #000">PROFISSIONAL (Hard)</option>
-                        <option value="super-hard" style="background: #000">LENDÁRIO (Super Hard)</option>
+            <div class="selection-controls">
+                <div class="difficulty-box">
+                    <span>NÍVEL DA IA</span>
+                    <select id="difficulty-level">
+                        <option value="normal">AMADOR</option>
+                        <option value="hard">PROFISSIONAL</option>
+                        <option value="super-hard">LENDÁRIO</option>
                     </select>
                 </div>
-                <button id="start-btn" disabled class="btn-primary">Entrar em Campo</button>
+                <button id="start-btn" disabled class="btn-ultimate">Jogar Agora</button>
             </div>
         </section>
 
-        <!-- Arena Elite (Correção de Visualização) -->
+        <!-- Arena de Jogo (Totalmente Centralizada) -->
         <section id="game-screen" class="screen" style="display: none;">
             <div id="hud">
                 <div class="score-board">
-                    <div class="player-score">
-                        <img id="player-shield" src="" style="width: 60px;">
+                    <div class="team-block">
+                        <img id="player-shield" src="" alt="">
                         <span id="player-points">0</span>
                     </div>
-                    <div style="font-size: 1.5rem; font-weight: 900; color: var(--accent);">VS</div>
-                    <div class="ai-score">
+                    <div class="vs-divider">VS</div>
+                    <div class="team-block">
                         <span id="ai-points">0</span>
-                        <img id="ai-shield" src="" style="width: 60px;">
+                        <img id="ai-shield" src="" alt="">
                     </div>
                 </div>
-                <div id="match-info">GRANDE FINAL</div>
+                <div id="match-phase">OITAVAS DE FINAL</div>
             </div>
 
-            <div id="game-container-wrapper">
+            <div id="viewport">
                 <canvas id="gameCanvas"></canvas>
             </div>
 
-            <div style="position: absolute; bottom: 5%; color: white; opacity: 0.4; font-size: 0.8rem; font-weight: 700; letter-spacing: 3px;">
-                CONTROLES: SETAS (MOVIMENTO 3D) | MOUSE (FLUIDEZ)
-            </div>
+            <div class="controls-legend">⬅️➡️ LATERAIS | ⬆️ AVANÇAR | ⬇️ RECUAR</div>
         </section>
     </div>
 
-    <script src="game.js"></script>
+    <!-- Script carregado de forma assíncrona para não travar a UI -->
+    <script src="game.js" async></script>
 </body>
 </html>
