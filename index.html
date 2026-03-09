@@ -3,69 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ping Brasil 2.0 - Campeonato Brasileiro</title>
+    <title>Brasileirão Ping Pong Elite – Final Version</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Inicialização Estabilidade -->
-    <div id="loading-screen" class="screen">
-        <div class="loader"></div>
-        <h2 style="margin-top:20px; color:var(--primary)">Protocolo Antigravity</h2>
-        <p id="init-status">Validando Ambiente Python e Assets...</p>
-        <div id="pre-load-log"></div>
-    </div>
-
-    <div id="app" style="display: none;">
-        <!-- Menu Principal -->
-        <section id="main-menu" class="screen">
-            <h1 style="font-size: 5rem; font-weight: 900; background: linear-gradient(45deg, #00ff88, #00bcd4); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">PING BRASIL</h1>
-            <p style="letter-spacing: 10px; opacity: 0.6; margin-bottom: 3rem;">BR 2.0 EDITION</p>
-            <div class="menu-actions">
-                <button onclick="showScreen('team-selection')" class="btn-primary">Iniciar Temporada</button>
-            </div>
+    <div id="app">
+        <!-- Loader e Anti-Crash -->
+        <section id="loading-screen" class="screen">
+            <div class="loader"></div>
+            <h2 style="margin-top:2rem; font-weight: 900; color: var(--primary);">PING PONG ELITE</h2>
+            <p id="init-status" style="opacity: 0.6;">Sincronizando Resolução e Assets...</p>
+            <div id="pre-load-log" style="display:none"></div>
         </section>
 
-        <!-- Seleção de Time -->
+        <!-- Menu Principal Centralizado -->
+        <section id="main-menu" class="screen" style="display: none;">
+            <h1 style="font-size: 6rem; font-weight: 900; background: linear-gradient(to right, #00ff88, #00bcd4); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">ELITE BR</h1>
+            <p style="letter-spacing: 15px; margin-bottom: 4rem; font-weight: 700;">PRO CHAMPIONSHIP</p>
+            <button onclick="showScreen('team-selection')" class="btn-primary">Acessar Arena</button>
+        </section>
+
+        <!-- Seleção Elite -->
         <section id="team-selection" class="screen" style="display: none;">
-            <h2 style="margin-bottom: 2rem; font-weight: 900;">ESCOLHA SEU CLUBE</h2>
+            <h2 style="margin-bottom: 2rem; font-weight: 900; font-size: 2rem;">SELECIONE SEU CLUBE</h2>
             <div id="teams-grid"></div>
-            <div style="margin-top: 2rem; display: flex; align-items: center; gap: 2rem; background: var(--glass); padding: 1.5rem; border-radius: 50px;">
-                <div class="diff-group">
-                    <label style="font-size: 0.7rem; color: var(--secondary); font-weight: 900; display: block; margin-bottom: 5px;">DIFICULDADE</label>
-                    <select id="difficulty-level" style="background: transparent; color: white; border: none; font-weight: 700; outline: none; cursor: pointer;">
-                        <option value="normal" style="background:#000">NORMAL (Defensiva)</option>
-                        <option value="hard" style="background:#000">HARD (Ofensiva)</option>
-                        <option value="super-hard" style="background:#000">SUPER HARD (Mestre)</option>
+            <div style="display: flex; align-items: center; gap: 3rem;">
+                <div class="setting">
+                    <label style="display: block; font-size: 0.7rem; color: var(--secondary); font-weight: 900; margin-bottom: 5px;">MODO DE JOGO</label>
+                    <select id="difficulty-level" style="background: transparent; color: white; border: none; font-size: 1.2rem; font-weight: 900; outline: none;">
+                        <option value="normal" style="background: #000">AMADOR (Normal)</option>
+                        <option value="hard" style="background: #000">PROFISSIONAL (Hard)</option>
+                        <option value="super-hard" style="background: #000">LENDÁRIO (Super Hard)</option>
                     </select>
                 </div>
-                <button id="start-btn" disabled class="btn-primary" style="padding: 1rem 4rem;">Começar Match</button>
+                <button id="start-btn" disabled class="btn-primary">Entrar em Campo</button>
             </div>
         </section>
 
-        <!-- Campo de Jogo -->
+        <!-- Arena Elite (Correção de Visualização) -->
         <section id="game-screen" class="screen" style="display: none;">
             <div id="hud">
                 <div class="score-board">
                     <div class="player-score">
-                        <img id="player-shield" src="" style="width: 50px;">
+                        <img id="player-shield" src="" style="width: 60px;">
                         <span id="player-points">0</span>
                     </div>
-                    <div class="vs-badge">VS</div>
+                    <div style="font-size: 1.5rem; font-weight: 900; color: var(--accent);">VS</div>
                     <div class="ai-score">
                         <span id="ai-points">0</span>
-                        <img id="ai-shield" src="" style="width: 50px;">
+                        <img id="ai-shield" src="" style="width: 60px;">
                     </div>
                 </div>
-                <div id="match-info">OITAVAS DE FINAL</div>
-                <div style="color:var(--primary); font-weight: 900; font-size: 0.7rem; margin-top: 5px;">PRIMEIRO A 6 PONTOS VENCE</div>
+                <div id="match-info">GRANDE FINAL</div>
             </div>
 
-            <div id="game-container">
+            <div id="game-container-wrapper">
                 <canvas id="gameCanvas"></canvas>
             </div>
 
-            <div id="controls-hint">USE AS SETAS OU CLIQUE E ARRASTE O MOUSE</div>
+            <div style="position: absolute; bottom: 5%; color: white; opacity: 0.4; font-size: 0.8rem; font-weight: 700; letter-spacing: 3px;">
+                CONTROLES: SETAS (MOVIMENTO 3D) | MOUSE (FLUIDEZ)
+            </div>
         </section>
     </div>
 
